@@ -23,8 +23,6 @@ DFLAGS = -dw -m64 -w -wi -debug -Incurses -L-lncurses
 DTESTFLAGS := $(DFLAGS) -unittest -main -run
 ARGS = 
 
-NAMES = main
-SOURCES := $(addsuffix .d.noweb,$(addprefix src/, $(NAMES)))
 VPATH = src
 
 # For working with literate programming.
