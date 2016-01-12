@@ -205,14 +205,14 @@ in {
 body {
     int x, y;
 
-    getyx(y, x);
+    getyx(currscr, y, x);
 
     foreach(i, option; options) {
         if(i == current) wattron(currscr, A_REVERSE);
 
         wmove(currscr, y++, x);
-        if(i < 10) wprintw(currscr, "%d: %s", (i + 1) % 10, option);
-        else wprintw(currscr, "   %s", option);
+        if(i < 10) wprintw(currscr, "%d: %s", (i + 1) % 10, option.toStringz);
+        else wprintw(currscr, "   %s", option.toStringz);
 
         wattroff(currscr, A_REVERSE);
     }
@@ -287,13 +287,15 @@ body {
     int input;
 
     while(true) {
+        werase(currscr);
         displayOptions(options, current);
         wrefresh(currscr);
+        input = wgetch(currscr);
 
         switch(input) {
         case 0x0a:
             return options[current];
-        case '1' .. case '9':
+        case '1': .. case '9':
             int selected = input - '1';
             if(selected < options.length) return options[selected];
             else break;
@@ -307,6 +309,7 @@ body {
             current = min(current + 1, options.length - 1);
             break;
         default:
+        }
     }
 }
 
@@ -344,8 +347,10 @@ input available to us immediately, without buffering on newlines; the choice
 of \texttt{cbreak} over \texttt{raw} is because we Keikai is a fairly 
 lightweight program, so we want the default handling for interrupt keys
 like \texttt{\^{}Z} and \texttt{\^{}C}, instead of intercepting them ourselves. 
-Finally, using \texttt{keypad} gives us access to inputs like the arrow
-and function keys as well.
+Using \texttt{keypad} gives us access to inputs like the arrow
+and function keys as well. Finally, \texttt{curs_set} allows us to change
+how the terminal cursor is displayed; in this case, we hide it, since it's
+not useful to us until we get text input from the user.
 
 <<main>>=
 <<skeleton>>
@@ -356,6 +361,7 @@ int main(string[] args)
     noecho();
     cbreak();
     keypad(stdscr, true);
+    curs_set(0);
 
     <<mainloop>>
 
@@ -363,6 +369,13 @@ int main(string[] args)
 
     return 0;
 }
+
+@
+We also need to initialize some global variables that are used by all of our
+utility functions.
+
+<<globals>>=
+WINDOW* currscr;
 
 @
 \subsection{Includes}
@@ -374,6 +387,7 @@ import deimos.ncurses.curses;
 import std.algorithm.iteration : map, sum;
 import std.algorithm.comparison : max, min;
 import std.conv : to, ConvException;
+import std.string : toStringz;
 
 import std.math : abs;
 import std.exception : assertThrown;
@@ -385,7 +399,9 @@ import core.exception : AssertError;
 some bugs.) \texttt{std.algorithm.iteration} gives us functional
 constructs like \texttt{map} and \texttt{sum} for calculating grades.
 \texttt{std.conv} gives us the ability to convert strings to integers;
-functionality with hopefully obvious utility. 
+functionality with hopefully obvious utility. \texttt{std.string} provides
+\texttt{toStringz}, which converts immutable D strings to null-terminated
+C strings, for interfacing with C functions.
 
 \texttt{std.math}, \texttt{std.exception}, and \texttt{AssertError}
 give us asserts for writing unit tests.
@@ -398,6 +414,9 @@ function to (finally!) produce something usable and executable.
 <<skeleton>>=
 <<includes>>
 <<grade-data-structures>>
+<<user-io>>
+
+<<globals>>
 
 @
 \section{Unit tests}
