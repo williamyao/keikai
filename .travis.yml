@@ -1,13 +1,19 @@
 language: d
 
+env: DTESTFLAGS=-unittest -run -main
+
 d:
     - dmd
     - ldc2
-    - gdc
+
+matrix:
+    allow_failures:
+        d:
+            - gdc
 
 addons:
     apt:
         packages:
         - noweb
 
-script: make test
+script: make test DTESTFLAGS=$DTESTFLAGS
