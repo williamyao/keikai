@@ -185,6 +185,66 @@ add up to some predetermined amount, but make no judgment about it
 just yet.
 
 @
+\subsection{Interacting with the user}
+
+After taking a look at the data structures that we'll use to represent
+the user's grades, we can already see some IO operations we'll have to
+perform again and again. For example, we'll need a way for the user to
+select from multiple choices; when starting the program, they'll need
+to select from, say, ``View Grades'' or ``Add Course'', and after
+selecting ``View Grades'', the user will have to further differentiate
+between different classes, different categories, and different grades.
+To that end, it would be useful to have a simple way to draw a menu,
+and have the user select an option.
+
+<<user-io>>=
+void displayOptions(string[] options, int current)
+in {
+    options.length > 0;
+}
+body {
+    int x, y;
+
+    getyx(y, x);
+
+    foreach(i, option; options) {
+        if(i == current) wattron(currscr, A_REVERSE);
+
+        wmove(currscr, y++, x);
+        if(i < 10) wprintw(currscr, "%d: %s", (i + 1) % 10, option);
+        else wprintw(currscr, "   %s", option);
+
+        wattroff(currscr, A_REVERSE);
+    }
+}
+
+@
+The use of \texttt{current} and \texttt{A\_REVERSE} allows the user
+to navigate the menu using the arrow keys and Enter; we use
+\texttt{A\_REVERSE} to highlight a single menu option, and the selected
+option can be changed by pressing the arrow keys, before finally
+deciding on one with Enter.
+
+However, for the power user, or someone more used to less intuitive
+interfaces, we also provide the ability to select an option by hitting
+0-9; this is the purpose of performing \texttt{(i + 1) \% 10}. This sort
+of hotkey is obviously limited to just ten choices, but most menus
+will be shorter than that.
+
+A sample invocation of \texttt{displayOptions} would produce a screen
+that looks similar to this:
+
+\begin{verbatim}
+1: FOO
+2: BAR
+3: BAZ
+...
+0: QUUX
+   FROBNICATE
+   SELF DESTRUCT
+\end{verbatim}
+
+@
 \subsection{Putting it all together}
 
 With all the necessary components now defined, it's time to set up the main
@@ -238,9 +298,11 @@ Library functions have to come from \emph{somewhere}, after all.
 
 <<includes>>=
 import deimos.ncurses.curses;
-import std.algorithm.iteration;
-import std.math;
-import std.exception;
+import std.algorithm.iteration : map, sum;
+import std.conv : to, ConvException;
+
+import std.math : abs;
+import std.exception : assertThrown;
 import core.exception : AssertError;
 
 @
@@ -248,6 +310,8 @@ import core.exception : AssertError;
 \texttt{ncurses} library which acts exactly like the C one (minus
 some bugs.) \texttt{std.algorithm.iteration} gives us functional
 constructs like \texttt{map} and \texttt{sum} for calculating grades.
+\texttt{std.conv} gives us the ability to convert strings to integers;
+functionality with hopefully obvious utility. 
 
 \texttt{std.math}, \texttt{std.exception}, and \texttt{AssertError}
 give us asserts for writing unit tests.
