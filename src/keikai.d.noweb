@@ -1,0 +1,188 @@
+@
+\section{Introduction}
+
+My university has an online gradebook, which sports among its most useful
+features, missing grades, inaccurate grades, and confusing interfaces.
+After being told I had a grade of 3,627\% in AI, I figured it was time to
+write a half-decent gradebook of my own.
+
+\textbf{Keikai} aims to be an extremely minimal gradebook program, as well
+as a demonstration of literate programming. To that end, it uses 
+\texttt{ncurses} to run fast and focus on its core functionality.
+
+\section{Implementation}
+
+\subsection{Required software}
+
+For running a built application, the only thing needed is a working
+installation of \texttt{libncurses}. Building is a little more complicated,
+and requires the following:
+
+\begin{itemize}
+\item \texttt{libncurses}, for obvious reasons.
+\item \texttt{dmd}, or another compiler for the D language. Ensure that it's
+    for D 2.0.
+\item \texttt{noweb}, a program for working with literate source code
+\item GNU \texttt{make}; alternatively, I hope you enjoy managing
+    includes and linking yourself.
+\end{itemize}
+
+\subsection{About the source}
+
+Further sections include discussion of the source code of Keikai,
+hopefully organized in order to aid understanding of the structure of
+the program. Code sections may include directives such as 
+$\langle$\textit{name}$\rangle$,
+which indicate that another section of code with the given \textit{name}
+is inserted there.
+
+\subsection{Data representation}
+
+First things first; as Keikai is a program about managing and viewing
+grades, naturally the first thing should be to decide on the representation
+of said grades.
+
+The view I take of grades is a hierarchical one: grades belong to
+categories, and categories belong to different classes. A gradebook
+consists of many classes. One might ask, ``Don't grades naturally belong
+to classes?'' While certainly a valid way to look at grades, adding an
+intermediate container, categories, makes it easier to deal with
+grade \emph{weighting}, where certain grades are worth more than others,
+even with the same mark or point value. For example, the final grade
+may comprise quiz grades more heavily than homeworks.
+
+This hiearchichal view is recursive; the quantity we care about, the
+percentile grade of a class, is also a useful quantity when thinking
+about individual categories, or individual grades. As such, we can
+think of these three; classes, categories, and grades; as similar types
+with a common interface. To avoid confusing it with grade objects,
+we can call it \texttt{score}. Defining a common interface like this
+will aid with analysis; someone using Keikai can now look at grades
+for a single class, or drill down and look more deeply at individual
+categories or grades.
+
+<<grade-data-structures>>=
+interface Scorable {
+    public @safe double score();
+}
+
+class Grade : Scorable {
+public:
+    double points;
+    double maxPoints;
+    string description;
+
+    double @safe score()
+    {
+        return (points * 100) / maxPoints;
+    }
+
+    @safe this(double points, double maxPoints, string description = "")
+    {
+        this.points = points;
+        this.maxPoints = maxPoints;
+        this.description = description;
+    }
+
+    invariant
+    {
+        assert(points >= 0);
+        assert(maxPoints > 0);
+    }
+}
+
+class Category : Scorable {
+public:
+    double weight;
+    Grade[] grades;
+    string description;
+
+    double @safe score()
+    {
+        if(grades.length == 0) return 100;
+        else {
+            double points = sum(map!(a => a.points)(grades), 0.0);
+            double maxPoints = sum(map!(a => a.maxPoints)(grades), 0.0);
+
+            return points / maxPoints;
+        }
+    }
+
+    @safe this(double weight, string description = "")
+    {
+        this.weight = weight;
+        this.description = description;
+    }
+}
+
+@
+We cannot simply add together the scores of all the grades in the
+category, since they may have different max points, and thus differing
+weighting on the score of the category as a whole.
+
+\texttt{score} for \texttt{Category} does not use \texttt{weight}, since
+we only want to return the percent score for \emph{this} category,
+which has nothing to do with how it would be eventually weighted to
+determine the total grade for a class.
+
+Note that if a category has no grades, the category's score is defined to
+be 100, for full marks. The other choice would be to define the empty
+score as 0; however, to me it makes more sense for the grade for a class
+to start at 100 and (usually) decrease as the course goes on, rather than
+having a rapid jump up once some grades are actually entered. This design
+decision will extend to courses as well.
+
+<<grade-data-structures>>=
+class Course : Scorable {
+public:
+    Category[] categories;    
+    string description;
+
+    double @safe score()
+    {
+        if(categories.length == 0) return 100;
+        else return sum(map!(x => x.score * x.weight)(categories), 0.0);
+    }
+
+    @safe this(string description = "")
+    {
+        this.description = description;
+    }
+}
+
+class Gradebook {
+public:
+    Course[] courses;
+}
+
+@
+\subsection{Includes}
+
+Library functions have to come from \emph{somewhere}, after all.
+
+<<includes>>=
+import deimos.ncurses.curses;
+import std.algorithm.iteration;
+
+@
+\texttt{deimos.ncurses.curses} gives us a D wrapper for the 
+\texttt{ncurses} library which acts exactly like the C one (minus
+some bugs.) \texttt{std.algorithm.iteration} gives us functional
+constructs like \texttt{map} and \texttt{sum} for calculating grades.
+
+@
+\section{Unit tests}
+
+\textbf{Keikai} has a full suite of unit tests; passing the \texttt{-unittest}
+flag to \texttt{dmd} will compile a version of the executable that will
+execute the tests, and report failures. Keikai conveniently provides
+\texttt{make test} in order to compile these tests and run them. I
+encourage you to run them prior to using Keikai to ensure that your
+installation is working properly.
+
+The source code for the unit tests follows, and will be interspersed
+with commentary to explain what is being tested and why.
+
+<<unittests>>=
+
+
