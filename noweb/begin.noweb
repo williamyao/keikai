@@ -1,0 +1,14 @@
+%% Rather than make one monolithic NOWEB file containing all source,
+%% it makes more sense to be able to split things up, organizing code
+%% in the same hierarchical way as one would split a book. However, 
+%% this complicates things when weaving documentation, because 
+%% the \begin{document} and \end{document} commands, as well as
+%% document customization, don't lend themselves to fitting in any
+%% one source file. So instead, they go here, and in `end.noweb'.
+
+\documentclass{article}
+
+\usepackage{noweb}
+\usepackage[margin=1in]{geometry}
+
+\begin{document}

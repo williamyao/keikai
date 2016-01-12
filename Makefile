@@ -19,9 +19,17 @@
 #   for `foo.d'. Note that `foo.d' must not have a main function defined.
 
 DC = dmd
-DFLAGS = -dw -m64 -w -wi -debug
+DFLAGS = -dw -m64 -w -wi -debug -Incurses -L-lncurses
 DTESTFLAGS := $(DFLAGS) -unittest -main -run
 ARGS = 
+
+# For working with literate programming.
+TANGLE = notangle
+WEAVE = noweave
+TANGLEFLAGS = -Rmain -L'// %L "%F"%N'
+WEAVEFLAGS = -delay
+WEAVEBEG = noweb/begin.noweb
+WEAVEEND = noweb/end.noweb
 
 ## Options for deperecated flag
 # -de   --    Do not allow deperecated features
@@ -38,6 +46,10 @@ clean:
 	@-rm -f *.di
 	@-rm -f *.out
 	@-rm -f *.html
+	@-rm -f *.aux
+	@-rm -f *.pdf
+	@-rm -f *.tex
+	@-rm -f *.log
 	@-find . -maxdepth 1 -type f -perm +111 -delete
 
 run_%: %
@@ -70,3 +82,11 @@ lib%:
 test_%: %.d
 	@$(DC) $(DTESTFLAGS) $<
 	@printf "All tests passed.\n"
+
+## Rules for weaving/untangling code and documentation from NOWEB source.
+
+%.d: %.d.noweb
+	$(TANGLE) $(TANGLEFLAGS) $^ > $@
+
+%.tex: %.d.noweb
+	$(WEAVE) $(WEAVEFLAGS) $(WEAVEBEG) $^ $(WEAVEEND) > $@
