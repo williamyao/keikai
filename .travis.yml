@@ -1,0 +1,13 @@
+language: d
+
+d:
+    - dmd
+    - ldc2
+    - gdc
+
+addons:
+    apt:
+        packages:
+        - noweb
+
+script: make test
