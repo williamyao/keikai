@@ -1,5 +1,7 @@
 # Keikai
 
+[![Build Status](https://travis-ci.org/williamyao/keikai.svg?branch=master)](https://travis-ci.org/williamyao/keikai)
+
 ## Dependencies
 
 + **dmd**, or other compiler for the D language, second version
