@@ -86,7 +86,6 @@ public:
 
     invariant
     {
-        assert(points >= 0);
         assert(maxPoints > 0);
     }
 }
@@ -104,7 +103,7 @@ public:
             double points = sum(map!(a => a.points)(grades), 0.0);
             double maxPoints = sum(map!(a => a.maxPoints)(grades), 0.0);
 
-            return points / maxPoints;
+            return (points * 100) / maxPoints;
         }
     }
 
@@ -149,6 +148,11 @@ public:
         else return sum(map!(x => x.score * x.weight)(categories), 0.0);
     }
 
+    @safe double totalWeight()
+    {
+        return sum(map!(x => x.weight)(categories), 0.0);
+    }
+
     void addCategory(Category category) {
         categories ~= category;
     }
@@ -169,6 +173,18 @@ public:
 }
 
 @
+Note the function \texttt{totalWeight}; the \texttt{Course} structure
+does not \emph{enforce} that the weights for all categories add up to
+1, and indeed, doing so would be impossible, unless we also mandated
+that the user enter all the categories before allowing them to create
+a course. Additionally, the decision of what to do when weights don't
+add up seems as though it should be handled by code slightly higher
+level than our basic data structures. As such, we provide enough
+functionality for higher-level code to easily verify that the weights
+add up to some predetermined amount, but make no judgment about it
+just yet.
+
+@
 \subsection{Includes}
 
 Library functions have to come from \emph{somewhere}, after all.
@@ -176,12 +192,27 @@ Library functions have to come from \emph{somewhere}, after all.
 <<includes>>=
 import deimos.ncurses.curses;
 import std.algorithm.iteration;
+import std.math;
+import std.exception;
+import core.exception : AssertError;
 
 @
 \texttt{deimos.ncurses.curses} gives us a D wrapper for the 
 \texttt{ncurses} library which acts exactly like the C one (minus
 some bugs.) \texttt{std.algorithm.iteration} gives us functional
 constructs like \texttt{map} and \texttt{sum} for calculating grades.
+
+\texttt{std.math}, \texttt{std.exception}, and \texttt{AssertError}
+give us asserts for writing unit tests.
+
+@
+Combining the includes with all of our framework gives us a driverless
+``skeleton'' that we can now combine with either unit tests or a main
+function to (finally!) produce something usable and executable.
+
+<<skeleton>>=
+<<includes>>
+<<grade-data-structures>>
 
 @
 \section{Unit tests}
@@ -196,6 +227,84 @@ installation is working properly.
 The source code for the unit tests follows, and will be interspersed
 with commentary to explain what is being tested and why.
 
+Firstly, since we're testing floating-point values, we'll need a way
+to compare them that doesn't rely on exact equality.
+
 <<unittests>>=
+unittest {
+    bool floatCmp(double f1, double f2, double tolerance)
+    {
+        return abs(f1 - f2) <= tolerance;
+    }
 
+@
+First, let's make sure that our score calculations are actually working
+the way we want.
 
+<<unittests>>=
+    assertThrown!AssertError(new Grade(50, 0));
+    assertThrown!AssertError(new Grade(0, -5));
+
+    assert(new Grade(40, 50));
+    assert(new Grade(-5, 50));
+
+@
+Grades with a maximum score of 0 are obviously a no-go, since they 
+both make no sense and would cause division by zero errors. Negative
+values for maximum points are similarly nonsensical, even if they
+don't cause division errors.
+
+On the other hand, a negative or 0 value for the amount of points
+is totally sensical, since that would simply not add points, or subtract
+points, from the containing category, so we make sure that instantiating
+a normal grade, or a grade with negative points, works just fine.
+
+<<unittests>>=
+    auto g1 = new Grade(50, 100);
+    assert(floatCmp(g1.score, 50, 0.05));
+
+    auto g2 = new Grade(40, 50);
+    assert(floatCmp(g2.score, 80, 0.05));
+
+    auto c1 = new Category(0.25);
+    assert(floatCmp(c1.score, 100, 0.05));
+
+@
+Important to note is that categories that do not yet have grades
+should return a score of 100. This is design decision, as noted when
+designing the representation of the Grade objects et al.
+
+<<unittests>>=
+    c1.addGrade(new Grade(50, 50));
+    c1.addGrade(new Grade(100, 150));
+    assert(floatCmp(c1.score, 75, 0.05));
+
+    auto course = new Course();
+    assert(floatCmp(course.score, 100, 0.05));
+
+    auto c2 = new Category(0.75);
+    auto c3 = new Category(0.25);
+
+    course.addCategory(c2);
+    course.addCategory(c3);
+
+    assert(floatCmp(course.totalWeight, 1, 0.05));
+    assert(floatCmp(course.score, 100, 0.05));
+    
+    c2.addGrade(new Grade(100, 100));
+    c3.addGrade(new Grade(20, 100));
+
+    assert(floatCmp(course.score, 80, 0.05));
+
+@
+We test that the category weighting is working as it should;
+we get 75 points from the first category, which has a category
+score of 100\%, and 5 points from the second, which has a category
+score of 20\%, giving a total grade of 80\% for the course.
+
+<<unittests>>=
+}
+
+<<test-driver>>=
+<<skeleton>>
+<<unittests>>

@@ -28,7 +28,8 @@ VPATH = src
 # For working with literate programming.
 TANGLE = notangle
 WEAVE = noweave
-TANGLEFLAGS = -Rmain -L'// %L "%F"%N'
+TANGLEFORMAT = -L'// %L "%F"%N'
+TANGLEFLAGS := -Rmain $(TANGLEFORMAT)
 WEAVEFLAGS = -delay
 WEAVEBEG = noweb/begin.noweb
 WEAVEEND = noweb/end.noweb
@@ -40,11 +41,16 @@ WEAVEEND = noweb/end.noweb
 
 all: keikai
 
+test:
+	$(TANGLE) -Rtest-driver $(TANGLEFORMAT) src/keikai.d.noweb > keikai_test.d
+	$(DC) $(DTESTFLAGS) keikai_test.d
+
 # Targets marked as prerequisites of .PHONY will always be run,
 # even when there is a file with the same name.
 .PHONY: clean
 
 clean:
+	@-rm -f *.d
 	@-rm -f *.o
 	@-rm -f *.a
 	@-rm -f *.di
