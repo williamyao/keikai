@@ -1,7 +1,5 @@
 language: d
 
-env: DTESTFLAGS="-unittest -run -main -Incurses -L-lncurses"
-
 d:
     - dmd
 
@@ -12,4 +10,4 @@ addons:
 
 script:
     - notangle -Rtest-driver src/keikai.d.noweb > keikai_test.d
-    - $DC $DTESTFLAGS keikai_test.d
+    - $DC -Incurses -L-lncurses -unittest -main -run keikai_test.d
