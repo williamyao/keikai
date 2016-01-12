@@ -72,7 +72,7 @@ public:
     double maxPoints;
     string description;
 
-    double @safe score()
+    @safe double score()
     {
         return (points * 100) / maxPoints;
     }
@@ -97,7 +97,7 @@ public:
     Grade[] grades;
     string description;
 
-    double @safe score()
+    @safe double score()
     {
         if(grades.length == 0) return 100;
         else {
@@ -138,7 +138,7 @@ public:
     Category[] categories;    
     string description;
 
-    double @safe score()
+    @safe double score()
     {
         if(categories.length == 0) return 100;
         else return sum(map!(x => x.score * x.weight)(categories), 0.0);
