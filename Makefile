@@ -23,6 +23,10 @@ DFLAGS = -dw -m64 -w -wi -debug -Incurses -L-lncurses
 DTESTFLAGS := $(DFLAGS) -unittest -main -run
 ARGS = 
 
+NAMES = main
+SOURCES := $(addsuffix .d.noweb,$(addprefix src/, $(NAMES)))
+VPATH = src
+
 # For working with literate programming.
 TANGLE = notangle
 WEAVE = noweave
@@ -35,6 +39,8 @@ WEAVEEND = noweb/end.noweb
 # -de   --    Do not allow deperecated features
 # -d	--	  Silently allow
 # -dw	--	  Allow and warn
+
+all: keikai
 
 # Targets marked as prerequisites of .PHONY will always be run,
 # even when there is a file with the same name.

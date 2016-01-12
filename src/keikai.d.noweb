@@ -108,6 +108,11 @@ public:
         }
     }
 
+    void addGrade(Grade grade)
+    {
+        grades ~= grade;
+    }
+
     @safe this(double weight, string description = "")
     {
         this.weight = weight;
@@ -144,6 +149,10 @@ public:
         else return sum(map!(x => x.score * x.weight)(categories), 0.0);
     }
 
+    void addCategory(Category category) {
+        categories ~= category;
+    }
+
     @safe this(string description = "")
     {
         this.description = description;
@@ -153,6 +162,10 @@ public:
 class Gradebook {
 public:
     Course[] courses;
+
+    void addCourse(Course course) {
+        courses ~= course;
+    }
 }
 
 @
