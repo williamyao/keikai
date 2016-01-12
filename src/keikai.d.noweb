@@ -198,9 +198,9 @@ To that end, it would be useful to have a simple way to draw a menu,
 and have the user select an option.
 
 <<user-io>>=
-void displayOptions(string[] options, int current)
+void displayOptions(in string[] options, in int current)
 in {
-    options.length > 0;
+    assert(options.length > 0);
 }
 body {
     int x, y;
@@ -243,6 +243,79 @@ that looks similar to this:
    FROBNICATE
    SELF DESTRUCT
 \end{verbatim}
+
+Though we can derive the choices for, say, courses or categories from
+our existing data structures, it'd be nice to have a listing of our
+toplevel choices, such as viewing grades. That way, the toplevel logic
+is easier to change and maintain, rather than being buried in a
+subroutine or our eventual main loop.
+
+<<user-io>>=
+immutable enum : string {
+    VIEW_GRADES = "View grades",
+    ADD_COURSE = "Add a course",
+    DEL_COURSE = "Delete a course",
+    EDIT_COURSE = "Edit a course",
+    
+    ADD_CAT = "Add a category of grades",
+    DEL_CAT = "Delete a category of grades",
+    EDIT_CAT = "Edit a category",
+
+    ADD_GRADE = "Add a grade",
+    DEL_GRADE = "Delete a grade",
+    EDIT_GRADE = "Edit a grade",
+}
+
+@
+While it's nice and all to be able to print a menu to the screen,
+in practice there's no time when we'll print a menu without also wanting
+to get a selection from the user. 
+
+Personally I think that having a utility function take responsibility
+for user IO and interactivity breaks the hiearchical structure of a
+program somewhat; it seems like a heavy-handed solution that could
+lead to maintenance issues later. However, here I concede that doing so
+is extremely convenient.
+
+<<user-io>>=
+T menuSelect(T)(T[] options)
+in {
+    assert(options.length > 0);
+}
+body {
+    int current = 0;
+    int input;
+
+    while(true) {
+        displayOptions(options, current);
+        wrefresh(currscr);
+
+        switch(input) {
+        case 0x0a:
+            return options[current];
+        case '1' .. case '9':
+            int selected = input - '1';
+            if(selected < options.length) return options[selected];
+            else break;
+        case '0':
+            if(9 < options.length) return options[9];
+            else break;
+        case KEY_UP, KEY_LEFT:
+            current = max(current - 1, 0);
+            break;  
+        case KEY_DOWN, KEY_RIGHT:
+            current = min(current + 1, options.length - 1);
+            break;
+        default:
+    }
+}
+
+@
+Using a template function here, instead of just \texttt{string[]}, like
+\texttt{displayOptions}, ensures that we preserve the enum type when
+we pass it into \texttt{menuSelect}. This simplifies the logic in higher
+level functions, since we can just compare the return value of this
+function to an enum to decide what to do next.
 
 @
 \subsection{Putting it all together}
@@ -299,6 +372,7 @@ Library functions have to come from \emph{somewhere}, after all.
 <<includes>>=
 import deimos.ncurses.curses;
 import std.algorithm.iteration : map, sum;
+import std.algorithm.comparison : max, min;
 import std.conv : to, ConvException;
 
 import std.math : abs;
