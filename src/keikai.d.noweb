@@ -320,6 +320,41 @@ we pass it into \texttt{menuSelect}. This simplifies the logic in higher
 level functions, since we can just compare the return value of this
 function to an enum to decide what to do next.
 
+Since we know that we'll be taking text and number input, when adding
+new categories or entering grades, some utility functions for getting
+input will help as well.
+
+<<user-io>>=
+string wgetstring(WINDOW* w)
+{
+    auto input = "";
+    int c;
+    
+    echo();
+    curs_set(1);
+
+    while(true) {
+        c = wgetch(w);
+
+        switch(c) {
+        case '\n', '\r', EOF:
+            goto finish;
+        default:
+            input ~= c;
+        }
+    }
+
+finish:
+    noecho();
+    curs_set(0);
+    return input;
+}
+
+double wgetdouble(WINDOW* w)
+{
+    return to!double(wgetstring(w));
+}
+
 @
 \subsection{Putting it all together}
 
@@ -388,6 +423,7 @@ import std.algorithm.iteration : map, sum;
 import std.algorithm.comparison : max, min;
 import std.conv : to, ConvException;
 import std.string : toStringz;
+import std.stdio : EOF;
 
 import std.math : abs;
 import std.exception : assertThrown;
