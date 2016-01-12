@@ -1,16 +1,9 @@
 language: d
 
-env: DTESTFLAGS=-unittest -run -main -Incurses -L-lncurses
+env: DTESTFLAGS="-unittest -run -main -Incurses -L-lncurses"
 
 d:
     - dmd
-    - ldc
-    - gdc
-
-matrix:
-    allow_failures:
-        d:
-            - gdc
 
 addons:
     apt:
