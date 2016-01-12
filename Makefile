@@ -78,7 +78,7 @@ lib%:
 	$(DC) $(DFLAGS) $^
 
 %: %.o
-	$(DC) $^
+	$(DC) $(DFLAGS) $^
 
 %.di: %.d
 	$(DC) -H $<

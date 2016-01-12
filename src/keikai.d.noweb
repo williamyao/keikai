@@ -185,6 +185,53 @@ add up to some predetermined amount, but make no judgment about it
 just yet.
 
 @
+\subsection{Putting it all together}
+
+With all the necessary components now defined, it's time to set up the main
+logic of our program.
+
+<<mainloop>>=
+int input;
+
+mvprintw(4, 2, "You pressed: ");
+
+while(true) {
+    refresh();
+
+    input = getch();
+    mvprintw(4, 15, "0x%04X", input);
+}
+
+@
+Our program requires a bit of \texttt{ncurses} initialization. We choose to
+use \texttt{noecho}, since we don't want user selections to echo onto the
+terminal, unless we're taking in string input, like asking for descriptions
+for classes or entering in numbers. We use \texttt{cbreak}, which makes all
+input available to us immediately, without buffering on newlines; the choice
+of \texttt{cbreak} over \texttt{raw} is because we Keikai is a fairly 
+lightweight program, so we want the default handling for interrupt keys
+like \texttt{\^{}Z} and \texttt{\^{}C}, instead of intercepting them ourselves. 
+Finally, using \texttt{keypad} gives us access to inputs like the arrow
+and function keys as well.
+
+<<main>>=
+<<skeleton>>
+
+int main(string[] args)
+{
+    initscr();
+    noecho();
+    cbreak();
+    keypad(stdscr, true);
+
+    <<mainloop>>
+
+    endwin();
+
+    return 0;
+}
+
+@
 \subsection{Includes}
 
 Library functions have to come from \emph{somewhere}, after all.
