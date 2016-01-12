@@ -1,10 +1,11 @@
 language: d
 
-env: DTESTFLAGS=-unittest -run -main
+env: DTESTFLAGS=-unittest -run -main -Incurses -L-lncurses
 
 d:
     - dmd
-    - ldc2
+    - ldc
+    - gdc
 
 matrix:
     allow_failures:
