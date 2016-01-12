@@ -184,146 +184,6 @@ functionality for higher-level code to easily verify that the weights
 add up to some predetermined amount, but make no judgment about it
 just yet.
 
-@
-\subsection{Interacting with the user}
-
-After taking a look at the data structures that we'll use to represent
-the user's grades, we can already see some IO operations we'll have to
-perform again and again. For example, we'll need a way for the user to
-select from multiple choices; when starting the program, they'll need
-to select from, say, ``View Grades'' or ``Add Course'', and after
-selecting ``View Grades'', the user will have to further differentiate
-between different classes, different categories, and different grades.
-To that end, it would be useful to have a simple way to draw a menu,
-and have the user select an option.
-
-<<user-io>>=
-void displayOptions(in string[] options, in int current)
-in {
-    assert(options.length > 0);
-}
-body {
-    int x, y;
-
-    getyx(currscr, y, x);
-
-    foreach(i, option; options) {
-        if(i == current) wattron(currscr, A_REVERSE);
-
-        wmove(currscr, y++, x);
-        if(i < 10) wprintw(currscr, "%d: %s", (i + 1) % 10, option.toStringz);
-        else wprintw(currscr, "   %s", option.toStringz);
-
-        wattroff(currscr, A_REVERSE);
-    }
-}
-
-@
-The use of \texttt{current} and \texttt{A\_REVERSE} allows the user
-to navigate the menu using the arrow keys and Enter; we use
-\texttt{A\_REVERSE} to highlight a single menu option, and the selected
-option can be changed by pressing the arrow keys, before finally
-deciding on one with Enter.
-
-However, for the power user, or someone more used to less intuitive
-interfaces, we also provide the ability to select an option by hitting
-0-9; this is the purpose of performing \texttt{(i + 1) \% 10}. This sort
-of hotkey is obviously limited to just ten choices, but most menus
-will be shorter than that.
-
-A sample invocation of \texttt{displayOptions} would produce a screen
-that looks similar to this:
-
-\begin{verbatim}
-1: FOO
-2: BAR
-3: BAZ
-...
-0: QUUX
-   FROBNICATE
-   SELF DESTRUCT
-\end{verbatim}
-
-Though we can derive the choices for, say, courses or categories from
-our existing data structures, it'd be nice to have a listing of our
-toplevel choices, such as viewing grades. That way, the toplevel logic
-is easier to change and maintain, rather than being buried in a
-subroutine or our eventual main loop.
-
-<<user-io>>=
-immutable enum : string {
-    VIEW_GRADES = "View grades",
-    ADD_COURSE = "Add a course",
-    DEL_COURSE = "Delete a course",
-    EDIT_COURSE = "Edit a course",
-    
-    ADD_CAT = "Add a category of grades",
-    DEL_CAT = "Delete a category of grades",
-    EDIT_CAT = "Edit a category",
-
-    ADD_GRADE = "Add a grade",
-    DEL_GRADE = "Delete a grade",
-    EDIT_GRADE = "Edit a grade",
-}
-
-@
-While it's nice and all to be able to print a menu to the screen,
-in practice there's no time when we'll print a menu without also wanting
-to get a selection from the user. 
-
-Personally I think that having a utility function take responsibility
-for user IO and interactivity breaks the hiearchical structure of a
-program somewhat; it seems like a heavy-handed solution that could
-lead to maintenance issues later. However, here I concede that doing so
-is extremely convenient.
-
-<<user-io>>=
-T menuSelect(T)(T[] options)
-in {
-    assert(options.length > 0);
-}
-body {
-    int current = 0;
-    int input;
-
-    while(true) {
-        werase(currscr);
-        displayOptions(options, current);
-        wrefresh(currscr);
-        input = wgetch(currscr);
-
-        switch(input) {
-        case 0x0a:
-            return options[current];
-        case '1': .. case '9':
-            int selected = input - '1';
-            if(selected < options.length) return options[selected];
-            else break;
-        case '0':
-            if(9 < options.length) return options[9];
-            else break;
-        case KEY_UP, KEY_LEFT:
-            current = max(current - 1, 0);
-            break;  
-        case KEY_DOWN, KEY_RIGHT:
-            current = min(current + 1, options.length - 1);
-            break;
-        default:
-        }
-    }
-}
-
-@
-Using a template function here, instead of just \texttt{string[]}, like
-\texttt{displayOptions}, ensures that we preserve the enum type when
-we pass it into \texttt{menuSelect}. This simplifies the logic in higher
-level functions, since we can just compare the return value of this
-function to an enum to decide what to do next.
-
-Since we know that we'll be taking text and number input, when adding
-new categories or entering grades, some utility functions for getting
-input will help as well.
-
 <<user-io>>=
 string wgetstring(WINDOW* w)
 {
@@ -398,8 +258,24 @@ int main(string[] args)
     keypad(stdscr, true);
     curs_set(0);
 
-    <<mainloop>>
+    refresh();
 
+    void* opts = null;
+
+    WINDOW* headerWin = newwin(1, COLS, 0, 0);
+    mvwchgat(headerWin, 0, 0, -1, A_REVERSE, cast(short) 0, opts);
+    wattron(headerWin, A_REVERSE);
+    mvwprintw(headerWin, 0, cast(int) (COLS - header.length) / 2, "%s", header.toStringz);
+    wrefresh(headerWin);
+
+    WINDOW* footerWin = newwin(1, COLS, LINES - 1, 0);
+    mvwprintw(footerWin, 0, 0, "[a]dd, [e]dit, [d]elete, [q]uit".toStringz);
+    mvwchgat(footerWin, 0, 0, -1, A_REVERSE, cast(short) 0, opts);
+    wrefresh(footerWin);
+
+    getch();
+
+    delwin(headerWin);
     endwin();
 
     return 0;
@@ -411,6 +287,7 @@ utility functions.
 
 <<globals>>=
 WINDOW* currscr;
+string header = "Keikai 0.0.1";
 
 @
 \subsection{Includes}
