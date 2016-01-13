@@ -15,7 +15,7 @@ public:
     @property string description(string);
 }
 
-interface GradeContainer {
+interface GradeContainer : InteractiveContainer {
 public:
     Scorable[] members();
     bool select(in int index, ref GradeContainer);    
@@ -114,12 +114,50 @@ public:
         return format("%s grades", this.label);
     }
 
+    void wpromptadd(WINDOW* scr, int index) {
+        string description = promptString(scr, "Description for this new grade: ");
+        double maxPoints = promptDouble(scr, "Maximum point value: ");
+        double points = promptDouble(scr, "Earned point value: ");
+
+        addGrade(new Grade(points, maxPoints, description));
+    }
+
+    void wpromptdel(WINDOW* scr, int index) {
+        if(index < grades.length) {
+            string name = grades[index].description;
+            name = name == "" ? "this unnamed grade" : format("'%s'", name);
+
+            while(true) {
+                int input = promptInput(scr, format("Are you sure you want to delete %s? (y/n)", name));
+
+                switch(input) {
+                case 'y', 'Y':
+                    grades = grades[0..index] ~ grades[index + 1..$];
+                case 'n', 'N':
+                    return;
+                default:
+                }
+            }
+        } else displayError(scr, "Nothing to delete!");
+    }
+
+    void wpromptedit(WINDOW* scr, int index) {
+        if(index < grades.length) {
+            Grade g = grades[index];
+            
+            g.description = promptString(scr, "New description (<ENTER> to leave unchanged): ", g.description);
+            g.maxPoints = promptDouble(scr, "New maximum point value (<ENTER> to leave unchanged): ", g.maxPoints);
+            g.points = promptDouble(scr, "New earned point value (<ENTER> to leave unchanged): ", g.points);
+        } else displayError(scr, "Nothing to edit!");
+    }
+
     mixin(property!(double, q{weight}));
     mixin(property!(string, q{description}));
     mixin(property!(Course, q{up}));
 
-    this(double weight) {
+    this(double weight, string description) {
         this._weight = weight;
+        this._description = description;
     }
 
     void addGrade(Grade g) {
@@ -150,9 +188,6 @@ public:
     bool select(in int index, ref GradeContainer down) {
         if(index < categories.length) {
             down = categories[index];
-
-            if(down.members.length == 1) return down.select(0, down);
-
             return true;
         } else return false;
     }
@@ -166,6 +201,41 @@ public:
 
     string _headline() {
         return this.label;
+    }
+
+    void wpromptadd(WINDOW* scr, int index) {
+        string description = promptString(scr, "Description for this new category: ");
+        double weight = promptDouble(scr, "Percentage of final grade: ") / 100;
+
+        addCategory(new Category(weight, description));
+    }
+
+    void wpromptdel(WINDOW* scr, int index) {
+        if(index < categories.length) {
+            string name = categories[index].description;
+            name = name == "" ? "this unnamed category" : format("'%s'", name);
+
+            while(true) {
+                int input = promptInput(scr, format("Are you sure you want to delete %s? (y/n)", name));
+
+                switch(input) {
+                case 'y', 'Y':
+                    categories = categories[0..index] ~ categories[index + 1..$];
+                case 'n', 'N':
+                    return;
+                default:
+                }
+            }
+        } else displayError(scr, "Nothing to delete!");
+    }
+
+    void wpromptedit(WINDOW* scr, int index) {
+        if(index < categories.length) {
+            Category c = categories[index];
+
+            c.description = promptString(scr, "New description (<ENTER> to leave unchanged): ", c.description);
+            c.weight = promptDouble(scr, "New percentage of final grade (<ENTER> to leave unchanged): ", c.weight * 100) / 100;
+        } else displayError(scr,"Nothing to edit!");
     }
 
     this(string description) {
@@ -195,9 +265,6 @@ public:
     bool select(in int index, ref GradeContainer down) {
         if(index < courses.length) {
             down = courses[index];
-
-            if(down.members.length == 1) return down.select(0, down);
-
             return true;
         } else return false;
     }
@@ -209,6 +276,39 @@ public:
 
     string _headline() {
         return "All grades";
+    }
+
+    void wpromptadd(WINDOW* scr, int index) {
+        string description = promptString(scr, "Description for this new course: ");
+
+        addCourse(new Course(description));
+    }
+
+    void wpromptdel(WINDOW* scr, int index) {
+        if(index < courses.length) {
+            string name = courses[index].description;
+            name = name == "" ? "this unnamed course" : format("'%s'", name);
+
+            while(true) {
+                int input = promptInput(scr, format("Are you sure you want to delete %s? (y/n)", name));
+
+                switch(input) {
+                case 'y', 'Y':
+                    courses = courses[0..index] ~ courses[index + 1..$];
+                case 'n', 'N':
+                    return;
+                default:
+                }
+            }
+        } else displayError(scr, "Nothing to delete!");
+    }
+
+    void wpromptedit(WINDOW* scr, int index) {
+        if(index < courses.length) {
+            Course c = courses[index];
+
+            c.description = promptString(scr, "New description (<ENTER> to leave unchanged): ", c.description);
+        } else displayError(scr, "Nothing to edit!");
     }
 
     this() {};
@@ -257,6 +357,28 @@ string getnstring()(int n) {
     return wgetnstring(stdscr, n);
 }
 
+void displayError(WINDOW* scr, string errormsg) {
+    werase(scr);
+    mvwchgat(scr, 0, 0, -1, A_REVERSE, cast(short) 0, cast(void*) null);
+    wattron(scr, A_REVERSE);
+
+    mvwprintw(scr, 0, FOOTER_OFFSET, "%s", errormsg.toStringz);
+    wrefresh(scr);
+
+    Thread.sleep(dur!"msecs"(ERROR_DISPLAY_DURATION_MS));
+}
+
+int promptInput(WINDOW* scr, string prompt) {
+    werase(scr);
+    mvwchgat(scr, 0, 0, -1, A_REVERSE, cast(short) 0, cast(void*) null);
+    wattron(scr, A_REVERSE);
+
+    mvwprintw(scr, 0, FOOTER_OFFSET, "%s", prompt.toStringz);
+    wrefresh(scr);
+
+    return getch();
+}
+
 string promptString(WINDOW* scr, string prompt) {
     echo();
     curs_set(1);
@@ -273,6 +395,13 @@ string promptString(WINDOW* scr, string prompt) {
     curs_set(0);
 
     return input;
+}
+
+string promptString(WINDOW* scr, string prompt, string def) {
+    string input = promptString(scr, prompt);
+
+    if(input == "") return def;
+    else return input;
 }
 
 double promptDouble(WINDOW* scr, string prompt) {
@@ -293,12 +422,7 @@ double promptDouble(WINDOW* scr, string prompt, double def) {
             string input = promptString(scr, prompt);
             if(input == "") return def;
             else return to!double(input);
-        } catch(ConvException e) {
-            werase(scr);
-            mvwprintw(scr, 0, FOOTER_OFFSET, "That doesn't seem to be a number.");
-            wrefresh(scr);
-            Thread.sleep(dur!"msecs"(ERROR_DISPLAY_DURATION_MS));
-        }
+        } catch(ConvException e) displayError(scr, "That doesn't seem to be a number.");
     }
 }
 
@@ -328,9 +452,6 @@ int main(string[] args) {
     GradeContainer currGC = new Gradebook();
     int selected = 0;
 
-    (cast(Gradebook) currGC).addCourse(new Course("CSCI 5980"));
-    (cast(Gradebook) currGC).addCourse(new Course("STAT 3021"));
-
     while(true) {
         werase(fwin);
         mvwprintw(fwin, 0, FOOTER_OFFSET, "[a]dd, [d]elete, [e]dit, [q]uit, go [u]p");
@@ -349,13 +470,22 @@ int main(string[] args) {
         case 'q', 'Q':
             goto end;
         case 'a', 'A':
+            currGC.wpromptadd(fwin, selected);
+            break;
         case 'd', 'D':
+            currGC.wpromptdel(fwin, selected);
+            selected = max(selected - 1, 0);
+            break;
         case 'e', 'E':
+            currGC.wpromptedit(fwin, selected);
+            break;
         case KEY_LEFT, 'u', 'U':
             currGC.parent(currGC);
+            selected = 0;
             break;
         case KEY_RIGHT, 0xA:
             currGC.select(selected, currGC);
+            selected = 0;
             break;
         case KEY_UP:
             selected = max(selected - 1, 0);
