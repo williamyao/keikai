@@ -72,7 +72,7 @@ public:
     double maxPoints;
     string description;
 
-    @safe double score()
+    @safe override double score()
     {
         return (points * 100) / maxPoints;
     }
@@ -90,13 +90,24 @@ public:
     }
 }
 
-class Category : Scorable {
+interface GradeContainer {
+public:
+    @safe bool canSelect(int index);
+    @safe GradeContainer select(int index);
+    void promptDel(WINDOW* win, int index);
+    void promptAdd(WINDOW* win, int index);
+    void promptEdit(WINDOW* win, int index);
+    @safe @property GradeContainer parent();
+    @safe @property GradeContainer parent(GradeContainer);
+}
+
+class Category : Scorable, GradeContainer {
 public:
     double weight;
     Grade[] grades;
     string description;
 
-    @safe double score()
+    @safe override double score()
     {
         if(grades.length == 0) return 100;
         else {
@@ -117,6 +128,93 @@ public:
         this.weight = weight;
         this.description = description;
     }
+
+    @safe @property GradeContainer parent() 
+    {
+        return _parent;
+    }
+
+    @safe @property GradeContainer parent(GradeContainer p)
+    {
+        return (_parent = p);
+    }
+
+    @safe GradeContainer select(int index)
+    {
+        throw new Exception("This should never be called.");
+    }
+
+    @safe bool canSelect(int index) 
+    {
+        return false;
+    }
+
+    void promptDel(WINDOW* win, int index)
+    in {
+        assert(index < grades.length);
+    }
+    body {
+        werase(win);
+        mvwprintw(win, 0, 1, "Are you sure you want to delete this grade? (y/n)");
+        wrefresh(win);
+        
+        int c;
+
+        while(true) {
+            c = wgetch(win);
+
+            switch(c) {
+            case 'y', 'Y':
+                grades = grades[0..index] ~ grades[index + 1..$];
+            case 'n', 'N':
+                return;
+            default:
+                break;
+            }
+        }
+    }
+
+    void promptAdd(WINDOW* win, int index)
+    {
+        werase(win);
+        mvwprintw(win, 0, 1, "Enter a description for this grade: ");
+        wrefresh(win);
+
+        string description = wgetstring(win);
+
+        double max = wgetdouble(win);
+
+        while(true) {
+            try {
+                werase(win);
+                mvwprintw(win, 0, 1, "Enter maximum points: ");
+                wrefresh(win);
+
+                max = wgetdouble(win);
+                break;
+            } catch(ConvException e) {
+                werase(win);
+                mvwprintw(win, 0, 1, "That doesn't seem to be a number.");
+                wrefresh(win);
+            }
+        }
+
+        werase(win);
+        mvwprintw(win, 0, 1, "Enter points: ");
+        wrefresh(win);
+
+        double points = wgetdouble(win);
+
+        grades ~= new Grade(points, max, description);
+    }
+        
+    void promptEdit(WINDOW* win, int index)
+    in {
+        assert(index < grades.length);
+    }
+    body {}
+private:
+    GradeContainer _parent;
 }
 
 @
@@ -142,7 +240,7 @@ public:
     Category[] categories;    
     string description;
 
-    @safe double score()
+    @safe override double score()
     {
         if(categories.length == 0) return 100;
         else return sum(map!(x => x.score * x.weight)(categories), 0.0);
