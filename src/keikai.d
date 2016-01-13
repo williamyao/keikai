@@ -107,8 +107,7 @@ public:
     }
 
     bool select(in int index, ref GradeContainer down) {
-        down = this;
-        return true;
+        return false;
     }
 
     bool parent(ref GradeContainer up) {
@@ -287,8 +286,7 @@ public:
     }
 
     bool parent(ref GradeContainer up) {
-        up = this;
-        return true;
+        return false;
     }
 
     string _headline() {
@@ -497,18 +495,22 @@ int main(string[] args) {
             currGC.wpromptedit(fwin, selected);
             break;
         case KEY_LEFT, 'u', 'U':
-            currGC.parent(currGC);
-            selected = 0;
+            if(currGC.parent(currGC)) selected = 0;
             break;
         case KEY_RIGHT, 0xA:
-            currGC.select(selected, currGC);
-            selected = 0;
+            if(currGC.select(selected, currGC)) selected = 0;
             break;
         case KEY_UP:
             selected = max(selected - 1, 0);
             break;
         case KEY_DOWN:
-            selected = min(selected + 1, currGC.members.length - 1).max(0);
+            selected = max(0, min(selected + 1, (cast(int) currGC.members.length) - 1));
+            break;
+        case '1': .. case '9':
+            if(currGC.select(input - '1', currGC)) selected = 0;
+            break;
+        case '0':
+            if(currGC.select(9, currGC)) selected = 0;
             break;
         default:
         }
