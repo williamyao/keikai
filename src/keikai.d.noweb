@@ -182,7 +182,7 @@ public:
 
         string description = wgetstring(win);
 
-        double max = wgetdouble(win);
+        double max;
 
         while(true) {
             try {
@@ -199,11 +199,23 @@ public:
             }
         }
 
-        werase(win);
-        mvwprintw(win, 0, 1, "Enter points: ");
-        wrefresh(win);
+        double points;
 
-        double points = wgetdouble(win);
+        while(true) {
+            try {
+                werase(win);
+                mvwprintw(win, 0, 1, "Enter points: ");
+                wrefresh(win);
+
+                points = wgetdouble(win); 
+                break;
+            } catch(ConvException e) {
+                werase(win);
+                mvwprintw(win, 0, 1, "That doesn't seem to be a number.");
+                wrefresh(win);
+                Thread.sleep(dur!"msecs"(1250));
+            }
+        }
 
         grades ~= new Grade(points, max, description);
     }
@@ -212,7 +224,59 @@ public:
     in {
         assert(index < grades.length);
     }
-    body {}
+    body {
+        string input;
+
+        werase(win);
+        mvwprintw(win, 0, 1, "Enter a new description for this grade (enter to do nothing): ");
+        wrefresh(win);
+
+        Grade curr = grades[index];
+
+        string description = wgetstring(win);
+        description = description == "" ? curr.description : description;
+
+        double max; 
+
+        while(true) {
+            try {
+                werase(win);
+                mvwprintw(win, 0, 1, "New maximum point value for this grade (enter to do nothing): ");
+                wrefresh(win);
+
+                input = wgetstring(win);
+                max = input == "" ? curr.maxPoints : to!double(input);
+                break;
+            } catch(ConvException e) {
+                werase(win);
+                mvwprintw(win, 0, 1, "That doesn't seem to be a number.");
+                wrefresh(win);
+                Thread.sleep(dur!"msecs"(1250));
+            }
+        }
+
+        double points;
+
+        while(true) {
+            try {
+                werase(win);
+                mvwprintw(win, 0, 1, "New point value for this grade (enter to do nothing): ");
+                wrefresh(win);
+
+                input = wgetstring(win);
+                max = input == "" ? curr.maxPoints : to!double(input);
+                break;
+            } catch(ConvException e) {
+                werase(win);
+                mvwprintw(win, 0, 1, "That doesn't seem to be a number.");
+                Thread.sleep(dur!"msecs"(1250));
+            }
+        }
+
+        curr.description = description;
+        curr.maxPoints = max;
+        curr.points = points;
+    }
 private:
     GradeContainer _parent;
 }
@@ -399,6 +463,7 @@ import std.algorithm.comparison : max, min;
 import std.conv : to, ConvException;
 import std.string : toStringz;
 import std.stdio : EOF;
+import core.thread : Thread, dur;
 
 import std.math : abs;
 import std.exception : assertThrown;
