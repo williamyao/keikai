@@ -176,18 +176,23 @@ public:
 
     void promptAdd(WINDOW* win, int index)
     {
+        char[80] buf;
+
         werase(win);
-        mvwprintw(win, 0, 1, "Enter a description for this grade: ");
+        mvwprintw(win, 0, 1, "Description for this grade: ");
         wrefresh(win);
 
-        string description = wgetstring(win);
+        echo();
+        wgetstr(win, buf.ptr);
+        string description = buf.ptr.fromStringz.to!(immutable char[]);
+        noecho();
 
         double max;
 
         while(true) {
             try {
                 werase(win);
-                mvwprintw(win, 0, 1, "Enter maximum points: ");
+                mvwprintw(win, 0, 1, "Maximum points: ");
                 wrefresh(win);
 
                 max = wgetdouble(win);
@@ -196,6 +201,7 @@ public:
                 werase(win);
                 mvwprintw(win, 0, 1, "That doesn't seem to be a number.");
                 wrefresh(win);
+                Thread.sleep(dur!"msecs"(1250));
             }
         }
 
@@ -204,7 +210,7 @@ public:
         while(true) {
             try {
                 werase(win);
-                mvwprintw(win, 0, 1, "Enter points: ");
+                mvwprintw(win, 0, 1, "Points: ");
                 wrefresh(win);
 
                 points = wgetdouble(win); 
@@ -349,27 +355,17 @@ just yet.
 <<user-io>>=
 string wgetstring(WINDOW* w)
 {
-    auto input = "";
-    int c;
-    
     echo();
     curs_set(1);
 
-    while(true) {
-        c = wgetch(w);
+    char[80] buf;
 
-        switch(c) {
-        case '\n', '\r', EOF:
-            goto finish;
-        default:
-            input ~= c;
-        }
-    }
+    wgetnstr(w, buf.ptr, 80);
 
-finish:
     noecho();
     curs_set(0);
-    return input;
+
+    return buf.ptr.fromStringz.to!(string);
 }
 
 double wgetdouble(WINDOW* w)
@@ -433,12 +429,21 @@ int main(string[] args)
     WINDOW* footerWin = newwin(1, COLS, LINES - 1, 0);
     mvwprintw(footerWin, 0, 0, "[a]dd, [e]dit, [d]elete, [q]uit".toStringz);
     mvwchgat(footerWin, 0, 0, -1, A_REVERSE, cast(short) 0, opts);
+    wattron(footerWin, A_REVERSE);
     wrefresh(footerWin);
 
-    getch();
+    auto cat = new Category(0.25);
+    auto g1 = new Grade(20, 25, "Quiz 1");
+    cat.addGrade(g1);
+
+    cat.promptAdd(footerWin, 0);
 
     delwin(headerWin);
+    delwin(footerWin);
     endwin();
+
+    import std.stdio;
+    writeln(cat.grades[1].description);
 
     return 0;
 }
@@ -461,12 +466,12 @@ import deimos.ncurses.curses;
 import std.algorithm.iteration : map, sum;
 import std.algorithm.comparison : max, min;
 import std.conv : to, ConvException;
-import std.string : toStringz;
+import std.string : fromStringz, toStringz;
 import std.stdio : EOF;
 import core.thread : Thread, dur;
 
 import std.math : abs;
-import std.exception : assertThrown;
+import std.exception : assertThrown, assumeUnique;
 import core.exception : AssertError;
 
 @
