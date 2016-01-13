@@ -2,5 +2,3 @@
   but it makes it slighly finicky, since we didn't really want to have to handle that.
 - Permanence, obviously. I'll probably just use JSON, since that also makes it really
   easy to find and handle bugs.
-- Figure out why the entry lines aren't displaying properly for categories and
-  grades.

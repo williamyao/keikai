@@ -10,6 +10,7 @@ import core.thread;
 interface Scorable {
 public:
     double score();
+    string entry();
 
     @property string description();
     @property string description(string);
@@ -30,17 +31,6 @@ public:
     void wpromptedit(WINDOW* win, int index);
 }
 
-template hasPoints(T){
-    enum hasPoints = is(typeof({T obj; obj.points; obj.maxPoints;}()));
-}
-
-string entry(T : Scorable)(T s) {
-    string label = s.description == "" ? "<Unnamed>" : s.description;
-
-    static if(hasPoints!T) return format("%s [%.2f%% (%.0f/%.0f)]", label, s.score, s.points, s.maxPoints);
-    else return format("%s [%.2f%%]", label, s.score);
-}
-
 string label(T : GradeContainer)(T gc) {
     return gc.description == "" ? "<Unnamed>" : gc.description;
 }
@@ -59,6 +49,11 @@ class Grade : Scorable {
 public:
     double score() {
         return (points * 100) / maxPoints;
+    }
+
+    string entry() {
+        string name = description == "" ? "<Unnamed>" : description;
+        return format("%s [%.2f%% (%.0f/%.0f)]", name, score, points, maxPoints);
     }
 
     mixin(property!(double, "points"));
@@ -89,6 +84,19 @@ public:
     double score() {
         if(grades.length == 0) return 100;
         return (points * 100) / maxPoints;
+    }
+
+    string entry() {
+        string name = description == "" ? "<Unnamed>" : description;
+        if(grades.length == 0)
+            return format("%s [empty, weighted %.0f%%]", name, weight * 100);
+        else
+            return format("%s [%.2f%% (%.0f/%.0f), weighted %.0f%%] ",
+                          name,
+                          score,
+                          points,
+                          maxPoints,
+                          weight * 100);
     }
 
     Scorable[] members() {
@@ -172,6 +180,15 @@ public:
     double score() {
         if(categories.length == 0) return 100;
         else return categories.map!(x => x.score * x.weight).sum(0.0);
+    }
+
+    string entry() {
+        string name = description == "" ? "<Unnamed>" : description;
+
+        if(categories.length == 0)
+            return format("%s [empty]", name);
+        else
+            return format("%s [%.2f%%]", name, score);
     }
 
     double totalWeight() {
@@ -275,7 +292,7 @@ public:
     }
 
     string _headline() {
-        return "All grades";
+        return "All courses";
     }
 
     void wpromptadd(WINDOW* scr, int index) {
