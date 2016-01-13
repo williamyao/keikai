@@ -5,6 +5,7 @@ import std.format;
 import std.algorithm.iteration, std.algorithm.comparison;
 import std.string;
 import std.array;
+import core.thread;
 
 interface Scorable {
 public:
@@ -20,6 +21,13 @@ public:
     bool select(in int index, ref GradeContainer);    
     bool parent(ref GradeContainer);
     string _headline();
+}
+
+interface InteractiveContainer {
+public:
+    void wpromptadd(WINDOW* win, int index);
+    void wpromptdel(WINDOW* win, int index);
+    void wpromptedit(WINDOW* win, int index);
 }
 
 template hasPoints(T){
@@ -249,7 +257,55 @@ string getnstring()(int n) {
     return wgetnstring(stdscr, n);
 }
 
-string header = "keikai 0.0.1";
+string promptString(WINDOW* scr, string prompt) {
+    echo();
+    curs_set(1);
+
+    werase(scr);
+    mvwchgat(scr, 0, 0, -1, A_REVERSE, cast(short) 0, cast(void*) null);
+    wattron(scr, A_REVERSE);
+
+    mvwprintw(scr, 0, FOOTER_OFFSET, "%s", prompt.toStringz);
+    wrefresh(scr);
+    string input = wgetnstring(scr, MAX_INPUT_LENGTH);
+
+    noecho();
+    curs_set(0);
+
+    return input;
+}
+
+double promptDouble(WINDOW* scr, string prompt) {
+    while(true) {
+        try return to!double(promptString(scr, prompt));
+        catch(ConvException e) {
+            werase(scr);
+            mvwprintw(scr, 0, FOOTER_OFFSET, "That doesn't seem to be a number.");
+            wrefresh(scr);
+            Thread.sleep(dur!"msecs"(ERROR_DISPLAY_DURATION_MS));
+        }
+    }
+}
+
+double promptDouble(WINDOW* scr, string prompt, double def) {
+    while(true) {
+        try {
+            string input = promptString(scr, prompt);
+            if(input == "") return def;
+            else return to!double(input);
+        } catch(ConvException e) {
+            werase(scr);
+            mvwprintw(scr, 0, FOOTER_OFFSET, "That doesn't seem to be a number.");
+            wrefresh(scr);
+            Thread.sleep(dur!"msecs"(ERROR_DISPLAY_DURATION_MS));
+        }
+    }
+}
+
+enum HEADER = "keikai 0.0.1";
+enum MAX_INPUT_LENGTH = 80;
+enum FOOTER_OFFSET = 2;
+enum ERROR_DISPLAY_DURATION_MS = 1_250;
 
 int main(string[] args) {
     initscr();
@@ -262,7 +318,7 @@ int main(string[] args) {
     WINDOW* hwin = newwin(2, COLS, 0, 0);
     WINDOW* fwin = newwin(1, COLS, LINES - 1, 0);
 
-    mvwprintw(hwin, 0, cast(int) (COLS - header.length) / 2, "%s", header.toStringz);
+    mvwprintw(hwin, 0, cast(int) (COLS - HEADER.length) / 2, "%s", HEADER.toStringz);
     mvwchgat(hwin, 0, 0, -1, A_REVERSE, cast(short) 0, cast(void*) null);
     wrefresh(hwin);
 
@@ -277,7 +333,7 @@ int main(string[] args) {
 
     while(true) {
         werase(fwin);
-        mvwprintw(fwin, 0, 2, "[a]dd, [d]elete, [e]dit, [q]uit, go [u]p");
+        mvwprintw(fwin, 0, FOOTER_OFFSET, "[a]dd, [d]elete, [e]dit, [q]uit, go [u]p");
         mvwchgat(fwin, 0, 0, -1, A_REVERSE, cast(short) 0, cast(void*) null);
         wrefresh(fwin);
 
@@ -312,6 +368,9 @@ int main(string[] args) {
     }
 
     end:
+    delwin(fwin);
+    delwin(hwin);
+    delwin(content);
     endwin();
 
     return 0;
