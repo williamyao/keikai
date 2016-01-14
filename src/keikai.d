@@ -5,6 +5,7 @@ import std.format;
 import std.algorithm.iteration, std.algorithm.comparison;
 import std.string;
 import std.array;
+import std.json;
 import core.thread;
 
 interface Scorable {
@@ -54,6 +55,16 @@ public:
     string entry() {
         string name = description == "" ? "<Unnamed>" : description;
         return format("%s [%.2f%% (%.0f/%.0f)]", name, score, points, maxPoints);
+    }
+
+    T opCast(T : JSONValue)() {
+        JSONValue v = JSONValue(["class": "Grade"]);
+
+        v["points"] = points;
+        v["maxPoints"] = maxPoints;
+        v["description"] = description;
+
+        return v;
     }
 
     mixin(property!(double, "points"));
@@ -156,6 +167,16 @@ public:
             g.maxPoints = promptDouble(scr, "New maximum point value (<ENTER> to leave unchanged): ", g.maxPoints);
             g.points = promptDouble(scr, "New earned point value (<ENTER> to leave unchanged): ", g.points);
         } else displayError(scr, "Nothing to edit!");
+    }
+
+    T opCast(T : JSONValue)() {
+        JSONValue v = JSONValue(["class": "Category"]);
+
+        v["weight"] = weight;
+        v["description"] = description;
+        v["grades"] = grades.map!(x => cast(JSONValue) x).array;
+
+        return v;
     }
 
     mixin(property!(double, q{weight}));
@@ -263,6 +284,15 @@ public:
         c.up = this;
     }
 
+    T opCast(T : JSONValue)() {
+        JSONValue v = JSONValue(["class": "Course"]);
+
+        v["description"] = description;
+        v["categories"] = categories.map!(x => cast(JSONValue) x).array;
+
+        return v;
+    }
+
     mixin(property!(string, q{description}));
     mixin(property!(Gradebook, q{up}));
 private:
@@ -326,13 +356,20 @@ public:
         } else displayError(scr, "Nothing to edit!");
     }
 
+    T opCast(T : JSONValue)() {
+        JSONValue v = JSONValue(["class": "Gradebook"]);
+
+        v["courses"] = courses.map!(x => cast(JSONValue) x).array;
+
+        return v;
+    }
+
     this() {};
 
     void addCourse(Course c) {
         courses ~= c;
         c.up = this;
     }
-
 private:
     Course[] courses;
 }
@@ -464,7 +501,8 @@ int main(string[] args) {
     WINDOW* content = newwin(LINES - 3, COLS - 4, 2, 2);
     
     int input;
-    GradeContainer currGC = new Gradebook();
+    Gradebook top = new Gradebook();
+    GradeContainer currGC = top;
     int selected = 0;
 
     while(true) {
