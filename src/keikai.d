@@ -596,7 +596,7 @@ double promptDouble(WINDOW* scr, string prompt, double def) {
     }
 }
 
-enum HEADER = "keikai 0.0.1";
+enum HEADER = "keikai 1.0.0";
 enum MAX_INPUT_LENGTH = 80;
 enum FOOTER_OFFSET = 2;
 enum ERROR_DISPLAY_DURATION_MS = 1_250;
