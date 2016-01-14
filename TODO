@@ -1,6 +1,4 @@
 - Add some way to cancel out of a prompt. ^C is probably the most obvious option;
   but it makes it slighly finicky, since we didn't really want to have to handle that.
-- Permanence, obviously. I'll probably just use JSON, since that also makes it really
-  easy to find and handle bugs.
 - Make the program work with resizing. This probably shouldn't be that hard, but doing
   it portably is kind of a pain.

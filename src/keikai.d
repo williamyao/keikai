@@ -6,6 +6,7 @@ import std.algorithm.iteration, std.algorithm.comparison;
 import std.string;
 import std.array;
 import std.json;
+import std.file, std.path;
 import core.thread;
 
 interface Scorable {
@@ -65,6 +66,45 @@ public:
         v["description"] = description;
 
         return v;
+    }
+
+    static Grade fromJSON(JSONValue v)
+    in {
+        assert("class" in v);
+
+        JSONValue cls = v["class"];
+
+        assert(cls.type == JSON_TYPE.STRING);
+        assert(cls.str == "Grade");
+
+        assert("points" in v);
+        assert("maxPoints" in v);
+        assert("description" in v);
+    }
+    body {
+        double points, maxPoints;
+
+        switch(v["points"].type) {
+        case JSON_TYPE.INTEGER:
+            points = v["points"].integer;
+            break;
+        case JSON_TYPE.FLOAT:
+            points = v["points"].floating;
+            break;
+        default:
+        }
+
+        switch(v["points"].type) {
+        case JSON_TYPE.INTEGER:
+            maxPoints = v["maxPoints"].integer;
+            break;
+        case JSON_TYPE.FLOAT:
+            maxPoints = v["maxPoints"].floating;
+            break;
+        default:
+        }
+
+        return new Grade(points, maxPoints, v["description"].str);
     }
 
     mixin(property!(double, "points"));
@@ -177,6 +217,43 @@ public:
         v["grades"] = grades.map!(x => cast(JSONValue) x).array;
 
         return v;
+    }
+
+    static Category fromJSON(JSONValue v)
+    in {
+        assert("class" in v);
+
+        JSONValue cls = v["class"];
+
+        assert(cls.type == JSON_TYPE.STRING);
+        assert(cls.str == "Category");
+
+        assert("grades" in v);
+        assert(v["grades"].type == JSON_TYPE.ARRAY);
+
+        assert("weight" in v);
+        assert("description" in v);
+    }
+    body {
+        double weight;
+
+        switch(v["weight"].type) {
+        case JSON_TYPE.INTEGER:
+            weight = v["weight"].integer;
+            break;
+        case JSON_TYPE.FLOAT:
+            weight = v["weight"].floating;
+            break;
+        default:
+        }
+
+        Category c = new Category(weight, v["description"].str);
+
+        foreach(g; v["grades"].array) {
+            c.addGrade(Grade.fromJSON(g));
+        }
+
+        return c;
     }
 
     mixin(property!(double, q{weight}));
@@ -293,6 +370,30 @@ public:
         return v;
     }
 
+    static Course fromJSON(JSONValue v)
+    in {
+        assert("class" in v);
+
+        JSONValue cls = v["class"];
+
+        assert(cls.type == JSON_TYPE.STRING);
+        assert(cls.str == "Course");
+
+        assert("categories" in v);
+        assert(v["categories"].type == JSON_TYPE.ARRAY);
+
+        assert("description" in v);
+    }
+    body {
+        Course c = new Course(v["description"].str);
+
+        foreach(cat; v["categories"].array) {
+            c.addCategory(Category.fromJSON(cat));
+        }
+
+        return c;
+    }
+
     mixin(property!(string, q{description}));
     mixin(property!(Gradebook, q{up}));
 private:
@@ -362,6 +463,28 @@ public:
         v["courses"] = courses.map!(x => cast(JSONValue) x).array;
 
         return v;
+    }
+
+    static Gradebook fromJSON(JSONValue v)
+    in {
+        assert("class" in v);
+
+        JSONValue cls = v["class"];
+
+        assert(cls.type == JSON_TYPE.STRING);
+        assert(cls.str == "Gradebook");
+
+        assert("courses" in v);
+        assert(v["courses"].type == JSON_TYPE.ARRAY);
+    }
+    body {
+        Gradebook gc = new Gradebook();
+
+        foreach(c; v["courses"].array) {
+            gc.addCourse(Course.fromJSON(c));
+        }
+
+        return gc;
     }
 
     this() {};
@@ -459,12 +582,7 @@ string promptString(WINDOW* scr, string prompt, string def) {
 double promptDouble(WINDOW* scr, string prompt) {
     while(true) {
         try return to!double(promptString(scr, prompt));
-        catch(ConvException e) {
-            werase(scr);
-            mvwprintw(scr, 0, FOOTER_OFFSET, "That doesn't seem to be a number.");
-            wrefresh(scr);
-            Thread.sleep(dur!"msecs"(ERROR_DISPLAY_DURATION_MS));
-        }
+        catch(ConvException e) displayError(scr, "That doesn't seem to be a number.");
     }
 }
 
@@ -482,6 +600,14 @@ enum HEADER = "keikai 0.0.1";
 enum MAX_INPUT_LENGTH = 80;
 enum FOOTER_OFFSET = 2;
 enum ERROR_DISPLAY_DURATION_MS = 1_250;
+
+string databasePath() {
+    version(Windows) {
+        return "keikai_grades.json";
+    } else {
+        return expandTilde("~/.keikai/keikai_grades.json");
+    }
+}
 
 int main(string[] args) {
     initscr();
@@ -501,9 +627,22 @@ int main(string[] args) {
     WINDOW* content = newwin(LINES - 3, COLS - 4, 2, 2);
     
     int input;
-    Gradebook top = new Gradebook();
-    GradeContainer currGC = top;
     int selected = 0;
+
+    string dbpath = databasePath();
+
+    Gradebook top;
+
+    if(exists(dbpath)) {
+        top = Gradebook.fromJSON((cast(string) dbpath.read).parseJSON);
+    } else {
+        top = new Gradebook();
+
+        mkdirRecurse(dbpath.dirName);
+        write(dbpath, "");
+    }
+
+    GradeContainer currGC = top;
 
     while(true) {
         werase(fwin);
@@ -559,6 +698,8 @@ int main(string[] args) {
     delwin(hwin);
     delwin(content);
     endwin();
+
+    write(dbpath, (cast(JSONValue) top).toPrettyString);
 
     return 0;
 }
