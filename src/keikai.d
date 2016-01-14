@@ -700,6 +700,7 @@ int main(string[] args) {
     endwin();
 
     write(dbpath, (cast(JSONValue) top).toPrettyString);
+    append(dbpath, "\n");
 
     return 0;
 }
