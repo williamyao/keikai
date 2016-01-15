@@ -2,3 +2,5 @@
   but it makes it slighly finicky, since we didn't really want to have to handle that.
 - Make the program work with resizing. This probably shouldn't be that hard, but doing
   it portably is kind of a pain.
+- Add functionality to see what you need to make on an exam to get a certain grade
+- Maybe add a way to see grades over time, and predict a final grade
