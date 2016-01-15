@@ -596,6 +596,30 @@ double promptDouble(WINDOW* scr, string prompt, double def) {
     }
 }
 
+void displayHelp() {
+    WINDOW* helpwin = newwin(LINES - 8, COLS - 16, 4, 8);
+
+    box(helpwin, 0, 0);
+    mvwprintw(helpwin, 0, 4, "keikai help");
+    mvwprintw(helpwin, LINES - 10, 4, "press any key to close");
+    mvwprintw(helpwin, 2, 4, "<up>, <down>        select a course, category, or grade");
+    mvwprintw(helpwin, 3, 4, "<enter>, <right>    go down");
+    mvwprintw(helpwin, 4, 4, "<left>, u           go back");
+    mvwprintw(helpwin, 5, 4, "?                   show this dialogue");
+    mvwprintw(helpwin, 6, 4, "0 - 9               quick select");
+    mvwprintw(helpwin, 7, 4, "q                   quit");
+    mvwprintw(helpwin, 8, 4, "a                   add a course, category, or grade");
+    mvwprintw(helpwin, 9, 4, "d                   delete a course, category, or grade");
+    mvwprintw(helpwin, 10, 4, "e                   edit a course, category, or grade");
+
+    wrefresh(helpwin);
+
+    getch();
+
+    werase(helpwin);
+    wrefresh(helpwin);
+}
+
 enum HEADER = "keikai 1.0.1";
 enum MAX_INPUT_LENGTH = 80;
 enum FOOTER_OFFSET = 2;
@@ -688,6 +712,9 @@ int main(string[] args) {
             break;
         case '0':
             if(currGC.select(9, currGC)) selected = 0;
+            break;
+        case '?':
+            displayHelp();
             break;
         default:
         }
