@@ -670,7 +670,7 @@ int main(string[] args) {
 
     while(true) {
         werase(fwin);
-        mvwprintw(fwin, 0, FOOTER_OFFSET, "[a]dd, [d]elete, [e]dit, [q]uit, go [u]p");
+        mvwprintw(fwin, 0, FOOTER_OFFSET, "[a]dd, [d]elete, [e]dit, [q]uit, press ? for help");
         mvwchgat(fwin, 0, 0, -1, A_REVERSE, cast(short) 0, cast(void*) null);
         wrefresh(fwin);
 
