@@ -9,3 +9,73 @@ write a half-decent gradebook of my own.
 \textbf{Keikai} aims to be an extremely minimal gradebook program, as well
 as a demonstration of literate programming. To that end, it uses 
 \texttt{ncurses} to run fast and focus on its core functionality.
+
+@
+\section{Implementation}
+
+While the bulk of Keikai is written in the D language, falling back to the
+C \texttt{ncurses} library for writing the frontend, Keikai aims to be as readable
+and understandable as possible. To this end, it utilizes the technique of
+\emph{literate programming}, which emphasizes writing and presenting
+programs in an order that is optimal for humans to understand, rather than
+for a computer to execute. While many advocate for ``self-documenting code'',
+the approach of literate programming is different, instead focusing on
+giving the programmer the option of writing code in any order they please,
+rather than the rigid order enforced by parsers and compilers, and 
+interweaving code with documentation that both reinforces and explains the
+concepts embodied in the code.
+
+This document serves as both the source code for Keikai, as well as its 
+documentation. Along with plain-English documentation such as the paragraph
+you are currently reading, sections of source code will be prefixed with
+labels such as $\langle\langle$\textit{code}$\langle\langle$; these are
+presented in an order that should aid understanding of the program itself,
+but can still be extracted and turned into a functioning program by 
+appropriate literate programming tools.
+
+@
+\subsection{Requirements}
+
+\begin{itemize}
+\item \texttt{libncurses}, for Keikai's frontend display
+\item \texttt{dmd} or \texttt{ldc2}, compilers for the D2 language
+\item \texttt{noweb}, for extracting documentation and source code
+    from literate source files
+\item GNU \texttt{make}, for compiling the project (alternatively, one could
+    handle all includes and linking oneself)
+\end{itemize}
+
+@
+\subsection{Data representation}
+
+For a gradebook application, the most obvious place to start is in the
+definition of the data structures for our grades. Obviously we need some
+sort of \texttt{Grade} object, but what else? While it would certainly
+be possible for each \texttt{Grade} to carry around all the metadata about,
+say, the class it belongs to, or the type of grade it is (quiz, test, homework,
+etc.), that `belonging' relationship makes me think the most natural way
+to represent our gradebook is as a tree of objects, each containing the next
+one down: gradebook, course, category, grade.
+
+<<grade-definition>>=
+class Grade : Object, <<grade-interfaces>> {
+public:
+    double points;
+    double maxPoints;
+
+    string description;
+
+    double score() {
+        return (100 * points) / maxPoints;
+    }
+
+    this(double points, double maxPoints, string description) {
+        this.points = points;
+        this.maxPoints = maxPoints;
+        this.description = description;
+    }
+
+@
+Note that \texttt{score} returns a perfect score as 100, not as 1; this
+reduces the effect of rounding errors, as well as makes the \texttt{score}
+function more intuitive to use.
