@@ -6,7 +6,7 @@ AC_INIT([keikai], [version-1.0.1])
 AC_PREREQ([2.69])
 
 AC_MSG_NOTICE([checking for a D2 compiler])
-AC_CHECK_PROGS([DC], [dmd ldc2 gdc])
+AC_CHECK_PROGS([DC], [dmd ldc2 ldmd2])
 
 if test "$DC" = ""
 then
@@ -55,6 +55,27 @@ else
 fi
 
 rm "$TEMPIN" "$TEMPOUT"
+
+if test "$DC" = "dmd"
+then
+    AC_MSG_NOTICE([adding flags for DMD])
+    AC_SUBST([COMPILEFLAGS], ["-de -w"])
+elif test "$DC" = "ldc2" -o "$DC" = "ldmd2"
+then
+    AC_MSG_NOTICE([adding flags for LDC])
+    AC_SUBST([COMPILEFLAGS], ["-de -w -check-printf-calls"])
+fi
+
+AC_MSG_CHECKING([for 64-bit architecture])
+
+if echo $(uname -m) | grep -q "64" 
+then
+    AC_MSG_RESULT([yes])
+    AC_SUBST([ARCHFLAG], [-m64])
+else
+    AC_MSG_RESULT([no])
+    AC_SUBST([ARCHFLAG], [-m32])
+fi
 
 AC_MSG_NOTICE([checking if noweb is installed])
 
