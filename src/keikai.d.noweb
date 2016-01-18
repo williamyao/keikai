@@ -28,7 +28,7 @@ concepts embodied in the code.
 This document serves as both the source code for Keikai, as well as its 
 documentation. Along with plain-English documentation such as the paragraph
 you are currently reading, sections of source code will be prefixed with
-labels such as $\langle\langle$\textit{code}$\langle\langle$; these are
+labels such as $\langle$\textit{code}$\rangle$; these are
 presented in an order that should aid understanding of the program itself,
 but can still be extracted and turned into a functioning program by 
 appropriate literate programming tools.
