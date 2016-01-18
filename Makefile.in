@@ -1,0 +1,62 @@
+# @configure_input@
+
+DC = @DC@
+LIBS = @LIBS@
+DFLAGS := @COMPILEFLAGS@ -Incurses @ARCHFLAG@ $(addprefix -L,$(LIBS))
+DTESTFLAGS := $(DFLAGS) -unittest
+
+VPATH = src
+
+# For working with literate programming.
+TANGLE = @TANGLE@
+WEAVE = @WEAVE@
+TANGLEFORMAT = -L'// %L "%F"%N'
+TANGLEFLAGS := -Rmain $(TANGLEFORMAT)
+WEAVEFLAGS = -delay
+WEAVEBEG = noweb/begin.noweb
+WEAVEEND = noweb/end.noweb
+
+# Targets marked as prerequisites of .PHONY will always be run,
+# even when there is a file with the same name.
+.PHONY: clean
+
+clean:
+	@-rm -f *.d
+	@-rm -f *.o
+	@-rm -f *.a
+	@-rm -f *.di
+	@-rm -f *.out
+	@-rm -f *.html
+	@-rm -f *.aux
+	@-rm -f *.pdf
+	@-rm -f *.tex
+	@-rm -f *.log
+	@-rm -f *.status
+	@-rm -f configure
+	@-rm -rf autom4te.cache
+	@-find . -maxdepth 1 -type f -perm +111 -delete
+
+# Defaults.
+
+%: %.d
+	$(DC) $(DFLAGS) $^
+
+%: %.o
+	$(DC) $(DFLAGS) $^
+
+%.di: %.d
+	$(DC) -H $<
+
+%.o: %.d
+	$(DC) -c $(DFLAGS) $<
+
+%.html: %.d
+	$(DC) -D -c $<
+
+## Rules for weaving/untangling code and documentation from NOWEB source.
+
+%.d: %.d.noweb
+	$(TANGLE) $(TANGLEFLAGS) $^ > $@
+
+%.tex: %.d.noweb
+	$(WEAVE) $(WEAVEFLAGS) $(WEAVEBEG) $^ $(WEAVEEND) > $@
