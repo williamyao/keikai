@@ -9,5 +9,8 @@ addons:
         - noweb
 
 script:
-    - notangle -Rtest-driver src/keikai.d.noweb > keikai_test.d
-    - $DC -Incurses -L-lncurses -unittest -main -run keikai_test.d
+    - ./configure
+    - make
+    - make clean
+#   - notangle -Rtest-driver src/keikai.d.noweb > keikai_test.d
+#   - $DC -Incurses -L-lncurses -unittest -main -run keikai_test.d
