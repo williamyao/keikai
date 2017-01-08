@@ -20,6 +20,8 @@ WEAVEEND = noweb/end.noweb
 # even when there is a file with the same name.
 .PHONY: clean
 
+all: keikai
+
 clean:
 	@-rm -f *.d
 	@-rm -f *.o
@@ -33,7 +35,7 @@ clean:
 	@-rm -f *.log
 	@-rm -f *.status
 	@-rm -rf autom4te.cache
-	@-find . -maxdepth 1 -type f -perm +111 -not -name configure -delete
+	@-find . -maxdepth 1 -type f -perm /111 -not -name configure -delete
 
 # Defaults.
 
