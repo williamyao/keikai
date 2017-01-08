@@ -1,6 +1,6 @@
 # Keikai
 
-[![Build Status](https://travis-ci.org/williamyao/keikai.svg?branch=master)](https://travis-ci.org/williamyao/keikai)
+[![Build Status](https://travis-ci.org/williamyaoh/keikai.svg?branch=master)](https://travis-ci.org/williamyaoh/keikai)
 
 ## Dependencies
 
